@@ -1,0 +1,18 @@
+{
+  "name": "employee-tracker",
+  "version": "1.0.0",
+  "description": "Command line tool to track the employee data for the company.",
+  "main": "server.js",
+  "scripts": {},
+  "private": true,
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "inquirer": "^8.2.4",
+    "path": "^0.12.7",
+    "pg": "^8.10.0"
+  }
+}
