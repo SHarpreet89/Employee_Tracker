@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Command line tool to track the employee data for the company.",
   "main": "server.js",
-  "scripts": {},
+  "scripts": {
+    "start": "node server.js",
+    "cli": "node cli.js"
+  },
   "private": true,
   "keywords": [],
   "author": "",

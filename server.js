@@ -1,7 +1,6 @@
+const inquirer = require('inquirer');
 const express = require('express');
 const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -16,43 +15,81 @@ const pool = new Pool({
   password: 'Singh89H', // TODO: Enter your PostgreSQL password
   host: 'localhost',
   database: 'employee_db',
-});
+}, () => console.log(`Connected to the employee_tracker database.`));
 
-// Function to run schema.sql
-const runSchema = async () => {
-  const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-  const schema = fs.readFileSync(schemaPath, 'utf-8');
-  try {
-    await pool.query(schema);
-    console.log('Database schema created successfully.');
-  } catch (err) {
-    console.error('Error creating database schema:', err);
-  }
+pool.connect();
+
+const mainMenu = () => {
+  inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'What would you like to do?',
+      choices: [
+        'View all departments',
+        'View all roles',
+        'View all employees',
+        'Add a department',
+        'Add a role',
+        'Add an employee',
+        'Update an employee role',
+        'Exit'
+      ]
+    }
+  ]).then(answer => {
+    switch (answer.action) {
+      case 'View all departments':
+        viewDepartments();
+        break;
+      case 'View all roles':
+        viewRoles();
+        break;
+      case 'View all employees':
+        viewEmployees();
+        break;
+      case 'Add a department':
+        addDepartment();
+        break;
+      case 'Add a role':
+        addRole();
+        break;
+      case 'Add an employee':
+        addEmployee();
+        break;
+      case 'Update an employee role':
+        updateEmployeeRole();
+        break;
+      case 'Exit':
+        pool.end();
+        break;
+    }
+  });
 };
-
-// Run the schema
-runSchema();
 
 // Routes
 
-// View all departments
-app.get('/api/departments', (req, res) => {
+const viewDepartments = (req, res) => {
   const sql = `SELECT id AS department_id, name AS department_name FROM departments ORDER BY id`;
 
   pool.query(sql, (err, { rows }) => {
     if (err) {
-      res.status(500).json({ error: err.message });
+      if (res) res.status(500).json({ error: err.message });
+      else console.error(err.message);
       return;
     }
-    res.json({
-      message: 'success',
-      data: rows
-    });
+    if (res) {
+      res.json({
+        message: 'success',
+        data: rows
+      });
+    } else {
+      console.table(rows);
+      mainMenu();
+    }
   });
-});
+};
 
-// View all roles
-app.get('/api/roles', (req, res) => {
+const viewRoles = (req, res) => {
   const sql = `
     SELECT roles.id AS role_id, roles.title AS job_title, departments.name AS department_name, roles.salary 
     FROM roles 
@@ -62,18 +99,23 @@ app.get('/api/roles', (req, res) => {
 
   pool.query(sql, (err, { rows }) => {
     if (err) {
-      res.status(500).json({ error: err.message });
+      if (res) res.status(500).json({ error: err.message });
+      else console.error(err.message);
       return;
     }
-    res.json({
-      message: 'success',
-      data: rows
-    });
+    if (res) {
+      res.json({
+        message: 'success',
+        data: rows
+      });
+    } else {
+      console.table(rows);
+      mainMenu();
+    }
   });
-});
+};
 
-// View all employees
-app.get('/api/employees', (req, res) => {
+const viewEmployees = (req, res) => {
   const sql = `
     SELECT employees.id AS employee_id, employees.first_name, employees.last_name, roles.title AS job_title, 
            departments.name AS department_name, roles.salary, 
@@ -87,94 +129,122 @@ app.get('/api/employees', (req, res) => {
 
   pool.query(sql, (err, { rows }) => {
     if (err) {
-      res.status(500).json({ error: err.message });
+      if (res) res.status(500).json({ error: err.message });
+      else console.error(err.message);
       return;
     }
-    res.json({
-      message: 'success',
-      data: rows
-    });
-  });
-});
-
-// Add a department
-app.post('/api/department', ({ body }, res) => {
-  const sql = `INSERT INTO departments (name) VALUES ($1)`;
-  const params = [body.name];
-
-  pool.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: 'success',
-      data: body
-    });
-  });
-});
-
-// Add a role
-app.post('/api/role', ({ body }, res) => {
-  const sql = `INSERT INTO roles (title, salary, department_id) VALUES ($1, $2, $3)`;
-  const params = [body.title, body.salary, body.department_id];
-
-  pool.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: 'success',
-      data: body
-    });
-  });
-});
-
-// Add an employee
-app.post('/api/employee', ({ body }, res) => {
-  const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)`;
-  const params = [body.first_name, body.last_name, body.role_id, body.manager_id];
-
-  pool.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: 'success',
-      data: body
-    });
-  });
-});
-
-// Update an employee's role
-app.put('/api/employee/:id', (req, res) => {
-  const sql = `UPDATE employees SET role_id = $1 WHERE id = $2`;
-  const params = [req.body.role_id, req.params.id];
-
-  pool.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else if (!result.rowCount) {
-      res.json({
-        message: 'Employee not found'
-      });
-    } else {
+    if (res) {
       res.json({
         message: 'success',
-        data: req.body,
-        changes: result.rowCount
+        data: rows
       });
+    } else {
+      console.table(rows);
+      mainMenu();
     }
   });
-});
+};
 
-// Default response for any other request (Not Found)
-app.use((req, res) => {
-  res.status(404).end();
-});
+const addDepartment = (req, res) => {
+  const sql = `INSERT INTO departments (name) VALUES ($1)`;
+  const params = [req ? req.body.name : ''];
 
+  pool.query(sql, params, (err, result) => {
+    if (err) {
+      if (res) res.status(400).json({ error: err.message });
+      else console.error(err.message);
+      return;
+    }
+    if (res) {
+      res.json({
+        message: 'success',
+        data: req.body
+      });
+    } else {
+      console.log('Department added successfully.');
+      mainMenu();
+    }
+  });
+};
+
+const addRole = (req, res) => {
+  const sql = `INSERT INTO roles (title, salary, department_id) VALUES ($1, $2, $3)`;
+  const params = [req ? req.body.title : '', req ? req.body.salary : '', req ? req.body.department_id : ''];
+
+  pool.query(sql, params, (err, result) => {
+    if (err) {
+      if (res) res.status(400).json({ error: err.message });
+      else console.error(err.message);
+      return;
+    }
+    if (res) {
+      res.json({
+        message: 'success',
+        data: req.body
+      });
+    } else {
+      console.log('Role added successfully.');
+      mainMenu();
+    }
+  });
+};
+
+const addEmployee = (req, res) => {
+  const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)`;
+  const params = [req ? req.body.first_name : '', req ? req.body.last_name : '', req ? req.body.role_id : '', req ? req.body.manager_id : ''];
+
+  pool.query(sql, params, (err, result) => {
+    if (err) {
+      if (res) res.status(400).json({ error: err.message });
+      else console.error(err.message);
+      return;
+    }
+    if (res) {
+      res.json({
+        message: 'success',
+        data: req.body
+      });
+    } else {
+      console.log('Employee added successfully.');
+      mainMenu();
+    }
+  });
+};
+
+const updateEmployeeRole = (req, res) => {
+  const sql = `UPDATE employees SET role_id = $1 WHERE id = $2`;
+  const params = [req ? req.body.role_id : '', req ? req.params.id : ''];
+
+  pool.query(sql, params, (err, result) => {
+    if (err) {
+      if (res) res.status(400).json({ error: err.message });
+      else console.error(err.message);
+    } else if (!result.rowCount) {
+      if (res) {
+        res.json({
+          message: 'Employee not found'
+        });
+      } else {
+        console.log('Employee not found');
+        mainMenu();
+      }
+    } else {
+      if (res) {
+        res.json({
+          message: 'success',
+          data: req.body,
+          changes: result.rowCount
+        });
+      } else {
+        console.log('Employee role updated successfully.');
+        mainMenu();
+      }
+    }
+  });
+};
+
+// Start the server and the main menu
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  mainMenu();
 });
