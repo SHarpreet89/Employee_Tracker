@@ -278,6 +278,33 @@ const viewDepartmentBudget = () => {
   });
 };
 
+const deleteData = () => {
+  inquirer.prompt([
+    {
+      type: 'list',
+      name: 'deleteChoice',
+      message: 'What would you like to delete?',
+      choices: [
+        'Delete a department',
+        'Delete a role',
+        'Delete an employee'
+      ]
+    }
+  ]).then(answer => {
+    switch (answer.deleteChoice) {
+      case 'Delete a department':
+        deleteDepartment();
+        break;
+      case 'Delete a role':
+        deleteRole();
+        break;
+      case 'Delete an employee':
+        deleteEmployee();
+        break;
+    }
+  });
+};
+
 const deleteDepartment = () => {
   pool.query('SELECT id, name FROM departments', (err, results) => {
     if (err) {
