@@ -45,4 +45,4 @@ https://github.com/SHarpreet89
 
 ## Screenshot
 
-![Alt text](./assets/images/Application%20Image.png)
+![Alt text](./assets/images/App%20Image.png)
